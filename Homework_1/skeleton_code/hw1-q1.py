@@ -46,7 +46,16 @@ class Perceptron(LinearModel):
         y_i (scalar): the gold label for that example
         other arguments are ignored
         """
-        raise NotImplementedError # Q1.1 (a)
+        y_hat = self.predict(x_i)
+        #print(f"y_hat: {y_hat}, y_i: {y_i}")
+        if y_hat != y_i:
+            for i in range(len(self.W)):
+                if i==y_i:
+                    self.W[i,:] += x_i
+                else:
+                    self.W[i,:] -= x_i
+        
+        #raise NotImplementedError # Q1.1 (a)
 
 
 class LogisticRegression(LinearModel):
@@ -55,19 +64,49 @@ class LogisticRegression(LinearModel):
         x_i (n_features): a single training example
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
-        """
-        raise NotImplementedError # Q1.2 (a,b)
+        """     
+        y_pred = self.predict(x_i)
+        #x_i = x_i.reshape((-1,1))
+
+        #y_hat = y = np.zeros((len(self.W),1))
+        #y[y_i,:] = 1
+        #y_hat[y_pred,:] = 1
+
+        #dL_dW = np.matmul((y_hat - y), x_i.T)
+        # print(dL_dW[y_i,:])
+        if y_i != y_pred:
+            self.W[y_i] = (1-learning_rate*l2_penalty)*self.W[y_i] + learning_rate * x_i
+            self.W[y_pred] = (1-learning_rate*l2_penalty)*self.W[y_pred] - learning_rate * x_i
+        #raise NotImplementedError # Q1.2 (a,b)
 
 
 class MLP(object):
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
-        raise NotImplementedError # Q1.3 (a)
+        mean = 0.1
+        std = 0.1**2
+        #self.W = np.random.normal(mean, std,(hidden_size,n_features))
 
+        self.Wh = np.random.normal(mean, std, (hidden_size, n_features))
+        self.Bh = np.zeros((hidden_size,1))
+    
+        self.Wo = np.random.normal(mean, std, (n_classes, hidden_size))
+        self.Bo = np.zeros((n_classes,1))
+
+        # raise NotImplementedError # Q1.3 (a)
+        
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes.
-        raise NotImplementedError # Q1.3 (a)
+        oneVector = np.ones((len(self.Wh),1))
+        Z = self.Wh*X.T + oneVector*self.Bh.T 
+        H = np.maximum(Z,0) # hidden_size x n_examples
+
+        oneVector = np.ones((len(self.Wo),1))
+        Y_predicted = self.Wo*H.T + oneVector * self.Bo.T # n_classes x n_examples
+        
+        #? Do we do RELU activation in the y_predicteds
+        return np.argmax(Y_predicted,axis=0)
 
     def evaluate(self, X, y):
         """
