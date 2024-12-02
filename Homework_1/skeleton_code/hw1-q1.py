@@ -87,6 +87,10 @@ class MLP(object):
         std = 0.1**2
         #self.W = np.random.normal(mean, std,(hidden_size,n_features))
 
+        self.n_classes = n_classes
+        self.n_features = n_features
+        self.hidden_size = hidden_size
+
         self.Wh = np.random.normal(mean, std, (hidden_size, n_features))
         self.Bh = np.zeros((hidden_size,1))
     
@@ -104,6 +108,7 @@ class MLP(object):
 
         oneVector = np.ones((len(self.Wo),1))
         Y_predicted = self.Wo*H.T + oneVector * self.Bo.T # n_classes x n_examples
+        #! are we suppose to use softmax
         
         #? Do we do RELU activation in the y_predicteds
         return np.argmax(Y_predicted,axis=0)
@@ -122,8 +127,22 @@ class MLP(object):
     def train_epoch(self, X, y, learning_rate=0.001, **kwargs):
         """
         Dont forget to return the loss of the epoch.
-        """
+        """ 
+
+        Y_hat = self.predict(X)
+        #multinomial logistic loss: 1/m*(sum(-y*log(y_pred)))
+        loss =  
+
         raise NotImplementedError # Q1.3 (a)
+    
+    #!Check how this works?
+    def multinomial_logistic_loss(y_pred, y_true): # y_pred = [1,5,3,5,7,...]
+        """Multinomial logistic loss."""
+
+        m = y_true.shape[0]
+        log_likelihood = -np.log(y_pred + 1e-15) * y_true
+        loss = np.sum(log_likelihood) / m
+        return loss
 
 
 def plot(epochs, train_accs, val_accs, filename=None):
