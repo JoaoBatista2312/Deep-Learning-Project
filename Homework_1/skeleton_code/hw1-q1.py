@@ -131,7 +131,7 @@ class MLP(object):
 
         Y_hat = self.predict(X)
         #multinomial logistic loss: 1/m*(sum(-y*log(y_pred)))
-        loss =  
+        #loss =  
 
         raise NotImplementedError # Q1.3 (a)
     

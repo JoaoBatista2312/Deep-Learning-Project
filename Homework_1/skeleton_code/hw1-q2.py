@@ -48,7 +48,6 @@ class LogisticRegression(nn.Module):
         
         y_predicted = self.model(x)
         return y_predicted
-        raise NotImplementedError
 
 
 class FeedforwardNetwork(nn.Module):
@@ -68,8 +67,32 @@ class FeedforwardNetwork(nn.Module):
         includes modules for several activation functions and dropout as well.
         """
         super().__init__()
+        
+        self.layers = layers
         # Implement me!
-        raise NotImplementedError
+        if activation_type == 'relu':
+            self.activation = nn.ReLU()
+        elif activation_type == 'tanh':
+            self.activation = nn.Tanh()
+        elif activation_type == 'sigmoid':
+            self.activation = nn.Sigmoid()
+        else:
+            raise ValueError(f"Unsupported activation_type: {activation_type}")
+
+        #input fully  connected hidden layer
+        self.fully_con_hidden_layers = nn.ModuleList([nn.Linear(n_features, hidden_size), self.activation, nn.Dropout(dropout)])
+
+        for _ in range(self.layers - 1):
+            self.fully_con_hidden_layers.append(nn.Linear(hidden_size, hidden_size))
+            self.fully_con_hidden_layers.append(self.activation)
+            self.fully_con_hidden_layers.append(nn.Dropout(dropout))
+        
+        # Output layer
+        self.fully_con_hidden_layers.append(nn.Linear(hidden_size, n_classes))
+        self.fully_con_hidden_layers.append(nn.Softmax())
+        print(self.fully_con_hidden_layers)
+
+
 
     def forward(self, x, **kwargs):
         """
@@ -79,7 +102,11 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        
+        x_out = x
+        for i in range(self.layers):
+            x_out = self.fully_con_hidden_layers[i](x_out)
+        return x_out
 
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
