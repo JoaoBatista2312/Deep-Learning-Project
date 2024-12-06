@@ -47,13 +47,10 @@ class Perceptron(LinearModel):
         other arguments are ignored
         """
         y_hat = self.predict(x_i)
-        #print(f"y_hat: {y_hat}, y_i: {y_i}")
-        if y_hat != y_i:
-            for i in range(len(self.W)):
-                if i==y_i:
-                    self.W[i,:] += x_i
-                else:
-                    self.W[i,:] -= x_i
+        
+        if y_i != y_hat:
+            self.W[y_i, :] += x_i
+            self.W[y_hat, :] -= x_i
         
         #raise NotImplementedError # Q1.1 (a)
 
@@ -130,7 +127,7 @@ class MLP(object):
         """ 
 
         Y_hat = self.predict(X)
-        #multinomial logistic loss: 1/m*(sum(-y*log(y_pred)))
+        #   multinomial logistic loss: 1/m*(sum(-y*log(y_pred)))
         #loss =  
 
         raise NotImplementedError # Q1.3 (a)
