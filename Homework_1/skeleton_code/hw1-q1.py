@@ -76,39 +76,27 @@ class LogisticRegression(LinearModel):
             self.W[y_pred] = (1-learning_rate*l2_penalty)*self.W[y_pred] - learning_rate * x_i
         #raise NotImplementedError # Q1.2 (a,b)
 
-
 class MLP(object):
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
-        mean = 0.1
-        std = 0.1**2
-        #self.W = np.random.normal(mean, std,(hidden_size,n_features))
-
-        self.n_classes = n_classes
-        self.n_features = n_features
-        self.hidden_size = hidden_size
-
-        self.Wh = np.random.normal(mean, std, (hidden_size, n_features))
-        self.Bh = np.zeros((hidden_size,1))
-    
-        self.Wo = np.random.normal(mean, std, (n_classes, hidden_size))
-        self.Bo = np.zeros((n_classes,1))
-
-        # raise NotImplementedError # Q1.3 (a)
+        self.W = [np.random.normal(0.1, 0.1**2, size=(hidden_size,n_features)),
+                  np.random.normal(0.1, 0.1**2, size=(n_classes,hidden_size))]
         
+        self.B = [np.zeros((hidden_size,1)),
+                  np.zeros((n_classes,1))]
+        # raise NotImplementedError # Q1.3 (a)
+
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes.
-        oneVector = np.ones((len(self.Wh),1))
-        Z = self.Wh*X.T + oneVector*self.Bh.T 
-        H = np.maximum(Z,0) # hidden_size x n_examples
-
-        oneVector = np.ones((len(self.Wo),1))
-        Y_predicted = self.Wo*H.T + oneVector * self.Bo.T # n_classes x n_examples
-        #! are we suppose to use softmax
+        y_hat = []
+        for i in range(len(X)):
+            y_temp, _ = self.__forward__(X[i],self.W,self.B)
+            y_hat.append(y_temp)
+        y_hat = np.array(y_hat)
         
-        #? Do we do RELU activation in the y_predicteds
-        return np.argmax(Y_predicted,axis=0)
+        return np.argmax(self.__softmax__(y_hat),axis=1)
+        raise NotImplementedError # Q1.3 (a)
 
     def evaluate(self, X, y):
         """
@@ -121,25 +109,98 @@ class MLP(object):
         n_possible = y.shape[0]
         return n_correct / n_possible
 
-    def train_epoch(self, X, y, learning_rate=0.001, **kwargs):
+    def train_epoch(self, X, Y, learning_rate=0.001, **kwargs):
         """
         Dont forget to return the loss of the epoch.
-        """ 
-
-        Y_hat = self.predict(X)
-        #   multinomial logistic loss: 1/m*(sum(-y*log(y_pred)))
-        #loss =  
-
-        raise NotImplementedError # Q1.3 (a)
+        """
+        # print("X: ", np.shape(X))
+        num_layers = len(self.W)
+        total_loss = 0
+        # For each observation and target
+        for x, y in zip(X, Y):
+            # Comoute forward pass
+            output, hiddens = self.__forward__(x, self.W, self.B)
+            output_temp = np.argmax(self.__softmax__(output), axis=0)
+           
+            # Compute Loss and Update total loss
+            loss = self.__multinomial_logistic_loss__(output_temp, y)
+            total_loss += loss
+            # Compute backpropagation
+            grad_weights, grad_biases = self.__backward__(x, y, output, hiddens, self.W)
+            
+            # Update weights
+           
+            for i in range(num_layers):
+                self.W[i] -= learning_rate*grad_weights[i]
+                self.B[i] -= learning_rate*grad_biases[i]
+                
+        return total_loss
+        #raise NotImplementedError # Q1.3 (a)
     
+    #! Something wrong with the output, with np.shape equal to (6,100)
+    def __forward__(self, x, weights, biases):
+        num_layers = len(weights)
+        g = np.tanh
+        hiddens = []
+        # compute hidden layers
+        for i in range(num_layers):
+            h = x[:, None] if i == 0 else hiddens[i-1]
+            z = weights[i].dot(h) + biases[i]
+    
+            if i < num_layers-1:  # Assuming the output layer has no activation.
+                hiddens.append(g(z))
+        #compute output
+        output = z
+        output = output.reshape(-1) #To get rid of the (x,1)
+        return output, hiddens
+
+    def __backward__(self,x, y, output, hiddens, weights):
+        num_layers = len(weights)
+        y_OHE = np.zeros(np.shape(output))
+        y_OHE[y] = 1
+
+        probs = self.__softmax__(output)
+        grad_z = (probs - y_OHE)[:,None]
+        
+        grad_weights = []
+        grad_biases = []
+        
+        # Backpropagate gradient computations 
+        for i in range(num_layers-1, -1, -1):
+            # Gradient of hidden parameters.
+            h = x[:, None] if i == 0 else hiddens[i-1]
+            #print(f'h:{h}')
+            #print(f'grad_z:{grad_z}')
+
+            grad_weights.append(grad_z.dot(h.T))
+            #print(f'grad_weights shape:{grad_weights[-1]}')
+            grad_biases.append(grad_z)
+            
+            # Gradient of hidden layer below.
+            grad_h = weights[i].T.dot(grad_z)
+
+            # Gradient of hidden layer below before activation.
+            grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
+
+        # Making gradient vectors have the correct order
+        grad_weights.reverse()
+        grad_biases.reverse()
+        return grad_weights, grad_biases
+
     #!Check how this works?
-    def multinomial_logistic_loss(y_pred, y_true): # y_pred = [1,5,3,5,7,...]
+    def __multinomial_logistic_loss__(self,y_pred, y_true):
         """Multinomial logistic loss."""
 
-        m = y_true.shape[0]
         log_likelihood = -np.log(y_pred + 1e-15) * y_true
-        loss = np.sum(log_likelihood) / m
+        loss = np.sum(log_likelihood) 
         return loss
+
+    def __softmax__(self,x):
+        """Compute softmax values for each sets of scores in x."""
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum()
+
+        
 
 
 def plot(epochs, train_accs, val_accs, filename=None):
