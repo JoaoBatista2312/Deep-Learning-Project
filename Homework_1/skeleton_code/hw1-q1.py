@@ -82,8 +82,8 @@ class MLP(object):
         self.W = [np.random.normal(0.1, 0.1**2, size=(hidden_size,n_features)),
                   np.random.normal(0.1, 0.1**2, size=(n_classes,hidden_size))]
         
-        self.B = [np.zeros((hidden_size,1)),
-                  np.zeros((n_classes,1))]
+        self.B = [np.zeros((hidden_size)),
+                  np.zeros((n_classes))]
         # raise NotImplementedError # Q1.3 (a)
 
     def predict(self, X):
@@ -91,7 +91,7 @@ class MLP(object):
         # no need to save the values of hidden nodes.
         y_hat = []
         for i in range(len(X)):
-            y_temp, _ = self.__forward__(X[i],self.W,self.B)
+            y_temp, _ = self.__forward__(X[i])
             y_hat.append(y_temp)
         y_hat = np.array(y_hat)
         
@@ -119,7 +119,7 @@ class MLP(object):
         # For each observation and target
         for x, y in zip(X, Y):
             # Comoute forward pass
-            output, hiddens = self.__forward__(x, self.W, self.B)
+            output, hiddens = self.__forward__(x)
             output_temp = np.argmax(self.__softmax__(output), axis=0)
            
             # Compute Loss and Update total loss
@@ -129,28 +129,31 @@ class MLP(object):
             grad_weights, grad_biases = self.__backward__(x, y, output, hiddens, self.W)
             
             # Update weights
-           
+
             for i in range(num_layers):
                 self.W[i] -= learning_rate*grad_weights[i]
-                self.B[i] -= learning_rate*grad_biases[i]
+                self.B[i] -= learning_rate*(grad_biases[i].reshape(-1))
                 
         return total_loss
         #raise NotImplementedError # Q1.3 (a)
     
-    def __forward__(self, x, weights, biases):
-        num_layers = len(weights)
-        g = np.tanh
+    def __forward__(self, x):
+        layers = len(self.W)
         hiddens = []
-        # compute hidden layers
-        for i in range(num_layers):
-            h = x[:, None] if i == 0 else hiddens[i-1]
-            z = weights[i].dot(h) + biases[i]
-    
-            if i < num_layers-1:  # Assuming the output layer has no activation.
-                hiddens.append(g(z))
-        #compute output
+        # print(np.shape(x))
+        for layer in range(layers):
+            # print(f"x: {np.shape(x)}\n W: {np.shape(self.W[layer])}\n B: {np.shape(self.B[layer])}")
+            if layer == 0:
+                z = np.dot(self.W[layer], x) + self.B[layer]
+            else: 
+                z = np.dot(self.W[layer], h) + self.B[layer]
+            h = np.maximum(z, 0) #apply Relu
+            # print(np.shape(h))
+            hiddens.append(h)
+        # print(np.shape(hiddens[layer]))
         output = z
-        output = output.reshape(-1) #To get rid of the (x,1)
+        # print("output: ",z )
+
         return output, hiddens
 
     def __backward__(self,x, y, output, hiddens, weights):
@@ -159,7 +162,7 @@ class MLP(object):
         y_OHE[y] = 1
 
         probs = self.__softmax__(output)
-        grad_z = (probs - y_OHE)[:,None]
+        grad_z = (probs - y_OHE)[:, None]
         
         grad_weights = []
         grad_biases = []
@@ -167,23 +170,26 @@ class MLP(object):
         # Backpropagate gradient computations 
         for i in range(num_layers-1, -1, -1):
             # Gradient of hidden parameters.
-            h = x[:, None] if i == 0 else hiddens[i-1]
-            #print(f'h:{h}')
-            #print(f'grad_z:{grad_z}')
+            h = x if i == 0 else hiddens[i-1]
+            
+            h = h[:, None]
+            # print(np.shape(grad_z), np.shape(h) )
+            grad_weights.append(np.matmul(grad_z,h.T))
 
-            grad_weights.append(grad_z.dot(h.T))
-            #print(f'grad_weights shape:{grad_weights[-1]}')
             grad_biases.append(grad_z)
             
             # Gradient of hidden layer below.
-            grad_h = weights[i].T.dot(grad_z)
-
+            # print(np.shape(weights[i].T), np.shape(grad_z))
+            grad_h = np.matmul(weights[i].T, grad_z)
+            
+            
             # Gradient of hidden layer below before activation.
-            grad_z = grad_h * np.maximum(0, h)   # Grad of loss wrt z3.
+            grad_z = grad_h * np.maximum(0, h)
 
         # Making gradient vectors have the correct order
         grad_weights.reverse()
         grad_biases.reverse()
+       
         return grad_weights, grad_biases
 
     #!Check how this works?
@@ -247,7 +253,7 @@ def main():
                         help="""Learning rate for parameter updates (needed for
                         logistic regression and MLP, but not perceptron)""")
     parser.add_argument('-l2_penalty', type=float, default=0.0,)
-    parser.add_argument('-data_path', type=str, default='intel_landscapes.npz',)
+    parser.add_argument('-data_path', type=str, default='intel_landscapes.v2.npz',)
     opt = parser.parse_args()
 
     utils.configure_seed(seed=42)
