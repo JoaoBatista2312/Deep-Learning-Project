@@ -137,7 +137,6 @@ class MLP(object):
         return total_loss
         #raise NotImplementedError # Q1.3 (a)
     
-    #! Something wrong with the output, with np.shape equal to (6,100)
     def __forward__(self, x, weights, biases):
         num_layers = len(weights)
         g = np.tanh
@@ -180,7 +179,7 @@ class MLP(object):
             grad_h = weights[i].T.dot(grad_z)
 
             # Gradient of hidden layer below before activation.
-            grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
+            grad_z = grad_h * np.maximum(0, h)   # Grad of loss wrt z3.
 
         # Making gradient vectors have the correct order
         grad_weights.reverse()
