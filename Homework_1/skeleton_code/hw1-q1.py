@@ -87,6 +87,7 @@ class MLP(object):
         # raise NotImplementedError # Q1.3 (a)
 
     def predict(self, X):
+        # print(X)
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes.
         y_hat = []
@@ -120,16 +121,15 @@ class MLP(object):
         for x, y in zip(X, Y):
             # Comoute forward pass
             output, hiddens = self.__forward__(x)
-            output_temp = np.argmax(self.__softmax__(output), axis=0)
+            # output_temp = np.argmax(self.__softmax__(output), axis=0)
            
             # Compute Loss and Update total loss
-            loss = self.__multinomial_logistic_loss__(output_temp, y)
+            loss = self.__multinomial_logistic_loss__(output, y)
             total_loss += loss
             # Compute backpropagation
             grad_weights, grad_biases = self.__backward__(x, y, output, hiddens, self.W)
             
             # Update weights
-
             for i in range(num_layers):
                 self.W[i] -= learning_rate*grad_weights[i]
                 self.B[i] -= learning_rate*(grad_biases[i].reshape(-1))
@@ -147,6 +147,7 @@ class MLP(object):
                 z = np.dot(self.W[layer], x) + self.B[layer]
             else: 
                 z = np.dot(self.W[layer], h) + self.B[layer]
+
             h = np.maximum(z, 0) #apply Relu
             # print(np.shape(h))
             hiddens.append(h)
@@ -182,9 +183,8 @@ class MLP(object):
             # print(np.shape(weights[i].T), np.shape(grad_z))
             grad_h = np.matmul(weights[i].T, grad_z)
             
-            
             # Gradient of hidden layer below before activation.
-            grad_z = grad_h * np.maximum(0, h)
+            grad_z = grad_h * (h > 0).astype(float)
 
         # Making gradient vectors have the correct order
         grad_weights.reverse()
@@ -196,8 +196,13 @@ class MLP(object):
     def __multinomial_logistic_loss__(self,y_pred, y_true):
         """Multinomial logistic loss."""
 
-        log_likelihood = -np.log(y_pred + 1e-15) * y_true
+        y_OHE = np.zeros(np.shape(y_pred))
+        y_OHE[y_true] = 1
+        y_pred = self.__softmax__(y_pred)
+        log_likelihood = -np.log(y_pred + 1e-15) * y_OHE
+        # print(y_pred, y_true)
         loss = np.sum(log_likelihood) 
+        
         return loss
 
     def __softmax__(self,x):
