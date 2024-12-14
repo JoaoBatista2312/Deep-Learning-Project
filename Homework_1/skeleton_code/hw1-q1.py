@@ -79,8 +79,8 @@ class LogisticRegression(LinearModel):
 class MLP(object):
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
-        self.W = [np.random.normal(0.1, 0.1**2, size=(hidden_size,n_features)),
-                  np.random.normal(0.1, 0.1**2, size=(n_classes,hidden_size))]
+        self.W = [np.random.normal(0.1, 0.1, size=(hidden_size,n_features)),
+                  np.random.normal(0.1, 0.1, size=(n_classes,hidden_size))]
         
         self.B = [np.zeros((hidden_size)),
                   np.zeros((n_classes))]
@@ -175,13 +175,13 @@ class MLP(object):
             
             h = h[:, None]
             # print(np.shape(grad_z), np.shape(h) )
-            grad_weights.append(np.matmul(grad_z,h.T))
+            grad_weights.append(np.dot(grad_z,h.T))
 
             grad_biases.append(grad_z)
             
             # Gradient of hidden layer below.
             # print(np.shape(weights[i].T), np.shape(grad_z))
-            grad_h = np.matmul(weights[i].T, grad_z)
+            grad_h = np.dot(weights[i].T, grad_z)
             
             # Gradient of hidden layer below before activation.
             grad_z = grad_h * (h > 0).astype(float)
