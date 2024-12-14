@@ -89,7 +89,6 @@ class FeedforwardNetwork(nn.Module):
         
         # Output layer
         self.fully_con_hidden_layers.append(nn.Linear(hidden_size, n_classes))
-        self.fully_con_hidden_layers.append(nn.Softmax())
 
         self.N_layers = len(self.fully_con_hidden_layers)
 
