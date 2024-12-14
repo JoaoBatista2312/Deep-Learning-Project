@@ -82,7 +82,7 @@ class FeedforwardNetwork(nn.Module):
         #input fully  connected hidden layer
         self.fully_con_hidden_layers = nn.ModuleList([nn.Linear(n_features, hidden_size), self.activation, nn.Dropout(dropout)])
 
-        for _ in range(self.layers - 1):
+        for i in range(self.layers - 1):
             self.fully_con_hidden_layers.append(nn.Linear(hidden_size, hidden_size))
             self.fully_con_hidden_layers.append(self.activation)
             self.fully_con_hidden_layers.append(nn.Dropout(dropout))
@@ -90,9 +90,10 @@ class FeedforwardNetwork(nn.Module):
         # Output layer
         self.fully_con_hidden_layers.append(nn.Linear(hidden_size, n_classes))
         self.fully_con_hidden_layers.append(nn.Softmax())
+
+        self.N_layers = len(self.fully_con_hidden_layers)
+
         print(self.fully_con_hidden_layers)
-
-
 
     def forward(self, x, **kwargs):
         """
@@ -104,7 +105,7 @@ class FeedforwardNetwork(nn.Module):
         """
         
         x_out = x
-        for i in range(self.layers):
+        for i in range(self.N_layers):
             x_out = self.fully_con_hidden_layers[i](x_out)
         return x_out
 
