@@ -92,8 +92,6 @@ class FeedforwardNetwork(nn.Module):
 
         self.N_layers = len(self.fully_con_hidden_layers)
 
-        print(self.fully_con_hidden_layers)
-
     def forward(self, x, **kwargs):
         """
         x (batch_size x n_features): a batch of training examples
