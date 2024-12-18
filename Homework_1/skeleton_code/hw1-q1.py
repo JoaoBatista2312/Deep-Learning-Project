@@ -258,7 +258,7 @@ def main():
                         help="""Learning rate for parameter updates (needed for
                         logistic regression and MLP, but not perceptron)""")
     parser.add_argument('-l2_penalty', type=float, default=0.0,)
-    parser.add_argument('-data_path', type=str, default='intel_landscapes.v2.npz',)
+    parser.add_argument('-data_path', type=str, default='intel_landscapes.npz',)
     opt = parser.parse_args()
 
     utils.configure_seed(seed=42)
