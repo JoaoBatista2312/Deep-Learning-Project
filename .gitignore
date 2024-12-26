@@ -2,3 +2,4 @@
 .venv/
 *.npz
 *.pyc
+*.tsv
