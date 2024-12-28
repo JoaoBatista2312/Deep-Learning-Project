@@ -20,8 +20,17 @@ class BahdanauAttention(nn.Module):
 
     def __init__(self, hidden_size):
         super(BahdanauAttention, self).__init__()
-        
-        raise NotImplementedError("Add your implementation.")
+        self.hidden_size = hidden_size
+
+        self.Ws = nn.Linear(hidden_size, hidden_size,bias=False)
+        self.Wh = nn.Linear(hidden_size, hidden_size,bias=False)
+        self.V = nn.Linear(hidden_size, 1,bias=False)
+        self.Wout = nn.Linear(2*hidden_size,hidden_size,bias=False)
+        #self.Wout = nn.GRU(2 * hidden_size, hidden_size, batch_first=True)
+
+        self.tanh = nn.Tanh()
+        self.softmax = nn.Softmax(dim=-1)
+        #raise NotImplementedError("Add your implementation.")
 
     def forward(self, query, encoder_outputs, src_lengths):
         """
@@ -31,8 +40,43 @@ class BahdanauAttention(nn.Module):
         Returns:
             attn_out:   (batch_size, max_tgt_len, hidden_size) - attended vector
         """
+        # Alignment score 
+        #print(f"Query size:{query.size()}; Encoder_output size:{encoder_outputs.size()}")
 
-        raise NotImplementedError("Add your implementation.")
+        proj_encoder = self.Wh(encoder_outputs)  # (batch_size, max_src_len, hidden_size)
+        proj_query = self.Ws(query)  # (batch_size, max_tgt_len, hidden_size)
+
+        proj_query = proj_query.unsqueeze(2)  # Add a source-time-step dimension
+        proj_encoder = proj_encoder.unsqueeze(1)  # Add a target-time-step dimension
+        
+        # Alignment scores: e_{ti} = v^T * tanh(W_h h_i + W_s s_t)
+        e = self.V(self.tanh(proj_query + proj_encoder)).squeeze(-1) 
+
+        #e = self.V(self.tanh(self.Ws(query)+self.Wh(encoder_outputs)))
+
+        # Set padding to -inf to not influence the results
+        mask = self.sequence_mask(src_lengths)
+        e = e.transpose(1,2)
+        e[~mask,:] = float("-inf")
+        e = e.transpose(1,2)
+        
+        # Normalized using a softmax function to compute the attention weights 
+
+        alpha = self.softmax(e)
+        #print(f"Alpha size: {alpha.size()} Encoder size: {encoder_outputs.size()} Alignment score size: {e.size()} Mask size: {mask.size()}")
+        # Compute context vector
+        c = torch.bmm(alpha,encoder_outputs)
+
+        #Combine context vector with the decoder hidden state and produce the attention-enhanced decoder
+        #print(f"Context size: {c.size()} Query size: {query.size()} \n")
+
+        context_repeated = c.expand(-1, query.size(1), -1)  # Shape: [64, 16, 128]
+        c_ts_t = torch.cat([query, context_repeated], dim=-1) 
+
+        attn_out = self.tanh(self.Wout(c_ts_t))
+
+        return attn_out
+        #raise NotImplementedError("Add your implementation.")
 
     def sequence_mask(self, lengths):
         """
@@ -91,13 +135,13 @@ class Encoder(nn.Module):
         emb = self.embedding(src)
         
         emb = self.dropout(emb)
-        print(f"Encoder embeddings shape: {emb.size()}")
+        #print(f"Encoder embeddings shape: {emb.size()}")
         packed_embedded = pack(emb, lengths.cpu(), batch_first=True, enforce_sorted=False)
         
         output, final_hidden = self.lstm(packed_embedded)
 
         enc_output, _ = unpack(output, batch_first=True)
-        print(f"Encoder output shape: {enc_output.size()}")
+        #print(f"Encoder output shape: {enc_output.size()}")
         return enc_output, final_hidden
         #############################################
         # END OF YOUR CODE
@@ -169,13 +213,19 @@ class Decoder(nn.Module):
         #############################################
        
         emb = self.embedding(tgt)
-        print(f"Decoder tgt size: {tgt.size()} and embedding size: {emb.size()}")
+        # print(f"Decoder tgt size: {tgt.size()} and embedding size: {emb.size()}")
         emb = self.dropout(emb)
         
-        output, hidden_n = self.lstm(emb, dec_state)
-        
+        output, hidden_n = self.lstm(emb, dec_state) 
+
+        # print(f"Size pre-attention output: {output.size()}; Size pre-attention encoder: {encoder_outputs.size()}")
         if self.attn is not None:
+            # print(f"Enconder_outputs len: {encoder_outputs.size()}; Src_lenght:{src_lengths.size()}")
             output = self.attn(output, encoder_outputs, src_lengths)
+        # print(f"Size post-attention: {output.size()}")
+
+        if output.size()[1] != 1:
+           output = output[:,:-1,:] 
 
         return output, hidden_n  
 

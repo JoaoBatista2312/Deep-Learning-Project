@@ -231,7 +231,25 @@ def nucleus_sampling(logits, p=0.8):
     # 3. Rescale the distribution and sample from the resulting set of tokens.
     # Implementation of the steps as described above:
 
-    raise NotImplementedError("Add your implementation.")
+    # Step 1
+    prob = torch.softmax(logits, dim=-1)
+
+    # Step 2
+    prob_sorted , indices = torch.sort(prob,descending=True)
+    prob_acc = 0
+    for i in range(len(prob_sorted)):
+        prob_acc += prob_sorted[i]
+        if prob_acc >= p:
+            break
+    
+    # Step 3
+    prob_rescale = prob
+    prob_rescale[indices[i+1:]] = 0 
+    prob_rescale[indices[0:i+1]] /= prob_acc
+
+    chosen_index = torch.multinomial(prob_rescale, 1)
+
+    return chosen_index
 
 
 def main(args):
