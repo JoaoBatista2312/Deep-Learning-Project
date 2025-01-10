@@ -30,7 +30,6 @@ class BahdanauAttention(nn.Module):
 
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax(dim=-1)
-        #raise NotImplementedError("Add your implementation.")
 
     def forward(self, query, encoder_outputs, src_lengths):
         """
@@ -76,7 +75,6 @@ class BahdanauAttention(nn.Module):
         attn_out = self.tanh(self.Wout(c_ts_t))
 
         return attn_out
-        #raise NotImplementedError("Add your implementation.")
 
     def sequence_mask(self, lengths):
         """
